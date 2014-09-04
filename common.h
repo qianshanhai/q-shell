@@ -31,11 +31,6 @@
 
 #include "my_rand.h"
 
-#ifdef SEND_DEBUG
-#define TRANS_STRING "\x2\x3\x5"
-#define TRANS_LEN 3
-#endif
-
 #define CMD_TO1 2000000
 #define CMD_TO2 4000000
 
@@ -49,7 +44,7 @@
 
 #define ONCE_SIZE 128
 #define MUL 256
-#define HEAD_LEN 8
+#define HEAD_LEN 16
 #define PUT_LEN 896
 #define GET_LEN 896
 
@@ -455,8 +450,8 @@ int get_len(unsigned char *msg, int *len, int *pad)
 	if (my_decrypt(msg, head, HEAD_LEN) == -1)
 		return -1;
 
-	*len = (int)head[2] * 255 * 255 + (int)head[4] * 255 + (int)head[6];
-	*pad = (int)head[3];
+	*len = (int)head[5] * 255 * 255 + (int)head[7] * 255 + (int)head[11];
+	*pad = (int)head[13];
 
 	return *len;
 }
@@ -467,14 +462,14 @@ int set_len(unsigned char *msg, int len)
 
 	my_randomize(head, HEAD_LEN);
 
-	head[2] = len / 255 / 255;
-	head[4] = (len - head[2] * 255 * 255) / 255;
-	head[6] = len - head[2] * 255 * 255 - head[4] * 255;
-	head[3] = (len % 8 == 0 ? 0 : (8 - len % 8));
+	head[5] = len / 255 / 255;
+	head[7] = (len - head[5] * 255 * 255) / 255;
+	head[11] = len - head[5] * 255 * 255 - head[7] * 255;
+	head[13] = (len % 8 == 0 ? 0 : (8 - len % 8));
 
 	my_encrypt(head, msg, HEAD_LEN);
 
-	return (int)head[3];
+	return (int)head[13];
 }
 
 int unpack(unsigned char *msg, const char *buf, int len)
@@ -732,24 +727,10 @@ int get_file(const char *file, int sock)
 	while ((n = read_data(sock, buf, PUT_LEN + HEAD_LEN)) > 0) {
 		if ((t = unpack(msg, buf, n)) > 0) {
 			fwrite(msg, t, 1, fp);
-#ifdef SEND_DEBUG
-			if (write(sock, TRANS_STRING, TRANS_LEN) != 3) {
-				fclose(fp);
-				unlink(file);
-				return -1;
-			}
-#endif
 		}
 	}
 	if ((t = unpack(msg, buf, 0)) > 0) {
 		fwrite(msg, t, 1, fp);
-#ifdef SEND_DEBUG
-		if (write(sock, TRANS_STRING, TRANS_LEN) != 3) {
-			fclose(fp);
-			unlink(file);
-			return -1;
-		}
-#endif
 	}
 	fclose(fp);
 
@@ -776,12 +757,6 @@ int put_file(const char *file, int sock)
 				munmap(p, size);
 				return -1;
 			}
-#ifdef SEND_DEBUG
-			if (read_data(sock, tmp, TRANS_LEN) != TRANS_LEN) {
-				munmap(p, size);
-				return -1;
-			}
-#endif
 		}
 		remain -= n;
 	}

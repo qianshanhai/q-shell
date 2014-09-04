@@ -439,24 +439,15 @@ void do_cmd(int sock)
 	while ((n = _read_data(sock, buf, GET_LEN + HEAD_LEN, CMD_TO1)) > 0) {
 		if ((t = unpack(msg, buf, n)) > 0) {
 			write(fd[0], msg, t);
-#ifdef SEND_DEBUG
-			write(sock, TRANS_STRING, TRANS_LEN);
-#endif
 		}
 	}
 	if ((t = unpack(msg, NULL, 0)) > 0) {
 		write(fd[0], msg, t);
-#ifdef SEND_DEBUG
-		write(sock, TRANS_STRING, TRANS_LEN);
-#endif
 	}
 
 	while ((n = _read_data(fd[0], buf, GET_LEN, 2000000)) > 0) {
 		if ((t = pack(msg, buf, n)) > 0) {
 			write(sock, msg, t);
-#ifdef SEND_DEBUG
-			n = read_data_quick(sock, tmp, TRANS_LEN);
-#endif
 		}
 	}
 	close(fd[0]);
