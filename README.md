@@ -17,11 +17,11 @@ server key.
 
 1. server:
 
-just run qshd
+ Just run qshd on server:
 
 		 $ ./qshd
 
-but, you would like to run after change it to other name, such as:
+ But, you would like to run after change it to other name, such as:
 
 		 $ mv qshd smbd
 		 $ export PATH=.:$PATH
@@ -29,13 +29,13 @@ but, you would like to run after change it to other name, such as:
 
 2. client:
 
-set some environment variable, then run qsh:
+ Set some environment variable, then run qsh:
 
 		$ export _IP=127.0.0.1
 		$ export _PORT=2800
 		$ ./qsh shell
 
-now you already login into server $\_P .
+ Now you already login into server $\_P .
 
 ### more function
 
@@ -54,7 +54,7 @@ q-shell include more function to manage system:
 
 		$ ./qsh update /path/to/local/qshd
 
-This function will update remote qshd, and run again.
+ This function will update remote qshd, and run again.
 
 4. automation to run command on many server:
 
@@ -65,7 +65,7 @@ This function will update remote qshd, and run again.
 		      ./qsh exec 'ls -l /bin'
 		  done
 
-Note: qsh use $\_P to fetch server key, so you should erase all history data after to use $\_P.
+ Note: qsh use $\_P to fetch server key, so you should erase all history data after to use $\_P.
 
 ### about VERSION file
 
