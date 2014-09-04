@@ -24,7 +24,7 @@ just run qshd
 but, you would like to run after change it to other name, such as:
 
 		 $ mv qshd smbd
-		 $ export PATH=.$PATH
+		 $ export PATH=.:$PATH
 		 $ smbd
 
 2. client:
@@ -35,7 +35,7 @@ set some environment variable, then run qsh:
 		$ export _PORT=2800
 		$ ./qsh shell
 
-now you already login into server $(\_P) .
+now you already login into server $\_P .
 
 ### more function
 
@@ -56,16 +56,16 @@ q-shell include more function to manage system:
 
 This function will update remote qshd, and run again.
 
-4. automation to run command for many server:
+4. automation to run command on many server:
 
-		$ for i in {10 .. 20} ; do \
+		$ for i in {10..20} ; do \
 		      export _IP=192.168.0.$i
 		      export _PORT=2800
 		      export _P=key   # set key
 		      ./qsh exec 'ls -l /bin'
 		  done
 
-Note: qsh use $(\_P) to fetch server key, so you should erase all history data after to use $(\_P)
+Note: qsh use $\_P to fetch server key, so you should erase all history data after to use $\_P.
 
 ### about VERSION file
 
