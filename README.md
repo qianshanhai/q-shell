@@ -15,20 +15,24 @@ server key.
 
 ### usage
 
-server:
+1. server:
+
 just run qshd
-		$ ./qshd
+
+		 $ ./qshd
 
 but, you would like to run after change it to other name, such as:
-		$ mv qshd smbd
-		$ export PATH=.$PATH
-		$ smbd
 
-client:
+		 $ mv qshd smbd
+		 $ export PATH=.$PATH
+		 $ smbd
+
+2. client:
+
 set some environment variable, then run qsh:
 
-		$ export \_IP=127.0.0.1
-		$ export \_PORT=2800
+		$ export _IP=127.0.0.1
+		$ export _PORT=2800
 		$ ./qsh shell
 
 now you already login into server $(\_P) .
@@ -55,9 +59,9 @@ This function will update remote qshd, and run again.
 4. automation to run command for many server:
 
 		$ for i in {10 .. 20} ; do \
-		      export \_IP=192.168.0.$i
-		      export \_PORT=2800
-		      export \_P=key   # set key
+		      export _IP=192.168.0.$i
+		      export _PORT=2800
+		      export _P=key   # set key
 		      ./qsh exec 'ls -l /bin'
 		  done
 
