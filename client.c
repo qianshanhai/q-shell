@@ -186,7 +186,10 @@ int my_connect(const char *ip, int port, int cmd)
 		return -1;
 	}
 
-	if (verify_send(sockfd) == -1)
+	if (verify_client(sockfd) == -1)
+		return -1;
+
+	if (client_verify_version(sockfd) == -1)
 		return -1;
 
 	winsize_pack(&win, tmp);

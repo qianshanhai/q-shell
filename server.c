@@ -575,7 +575,12 @@ int server()
 			break;
 		}
 
-		if (verify_recv(connfd) == -1) {
+		if (verify_server(connfd) == -1) {
+			close(connfd);
+			continue;
+		}
+
+		if (server_verify_version(connfd) == -1) {
 			close(connfd);
 			continue;
 		}

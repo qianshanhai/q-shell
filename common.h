@@ -651,7 +651,7 @@ int my_crypt(void (*func)(const KOC_CTX *ctx, unsigned int *l, unsigned int *r),
 
 #define V_LEN 128
 
-int verify_send(int fd)
+int client_verify_version(int fd)
 {
 	int len;
 	char tmp[32];
@@ -688,7 +688,7 @@ int verify_send(int fd)
 	return 0;
 }
 
-int verify_recv(int fd)
+int server_verify_version(int fd)
 {
 	int len, flag = 0;
 	char tmp[32], tmp2[32];
@@ -724,6 +724,68 @@ int verify_recv(int fd)
 		return -1;
 
 	if (send(fd, msg, V_LEN, 0) != V_LEN)
+		return -1;
+
+	return 0;
+}
+
+typedef unsigned char verify_buf_t[1024];
+
+int verify_server(int fd)
+{
+	verify_buf_t r0, r2, tmp, buf;
+
+	/* 1. send blowfish(r0) */
+
+	my_randomize((char *)r0, V_LEN);
+	my_encrypt(r0, tmp, V_LEN);
+	write(fd, tmp, V_LEN);
+
+	/* 2. receive blowfish(r1 + r0), check r0 */
+
+	if (read_data(fd, buf, V_LEN * 2) != V_LEN * 2)
+		return -1;
+
+	my_decrypt(buf, tmp, V_LEN * 2);
+
+	if (memcmp(tmp + V_LEN, r0, V_LEN) != 0)
+		return -1;
+
+	/* 3. send blowfish(r2 + r1) */
+
+	my_randomize((char *)r2, V_LEN);
+	memcpy(r2 + V_LEN, tmp, V_LEN);
+
+	my_encrypt(r2, buf, V_LEN * 2);
+	write(fd, buf, V_LEN * 2);
+
+	return 0;
+}
+
+int verify_client(int fd)
+{
+	verify_buf_t r1, tmp, buf;
+
+	/* 1. read server r0, send blowfish(r1 + r0) */
+
+	if (read_data(fd, buf, V_LEN) != V_LEN)
+		return -1;
+
+	my_decrypt(buf, tmp, V_LEN);
+
+	my_randomize(r1, V_LEN);
+	memcpy(r1 + V_LEN, tmp, V_LEN);
+
+	my_encrypt(r1, tmp, V_LEN * 2);
+	write(fd, tmp, V_LEN * 2);
+
+	/* 2. read server r1, and check r1 */
+
+	if (read_data(fd, buf, V_LEN * 2) != V_LEN  * 2)
+		return -1;
+	my_decrypt(buf, tmp, V_LEN * 2);
+
+	if (memcmp(r1, tmp + V_LEN, V_LEN) != 0)
 		return -1;
 
 	return 0;
