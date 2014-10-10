@@ -2,3 +2,7 @@
 
   * 1.0 release
 
+-- 2014.10.10
+
+  * 2.0 release
+    prevent cracker to catch network data and uppack the data.
