@@ -337,12 +337,27 @@ int init_key(const char *key, int len)
 
 int my_encrypt(const unsigned char *in, unsigned char *out, int len)
 {
-	return my_crypt(koc_encrypt, htonl, ctx, (char *)in, (char *)out, len);
+	int i;
+
+	memcpy(out, in, len);
+
+	for (i = 1; i < len; i++)
+		out[i] ^= out[i - 1];
+
+	return my_crypt(koc_encrypt, htonl, ctx, (char *)out, (char *)out, len);
 }
 
 int my_decrypt(const unsigned char *in, unsigned char *out, int len)
 {
-	return my_crypt(koc_decrypt, ntohl, ctx, (char *)in, (char *)out, len);
+	int i;
+
+	if (my_crypt(koc_decrypt, ntohl, ctx, (char *)in, (char *)out, len) == -1)
+		return -1;
+
+	for (i = len - 1; i > 0; i--)
+		out[i] ^= out[i - 1];
+
+	return len;
 }
 
 #if defined(__hpux) || defined(__linux__)
