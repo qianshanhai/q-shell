@@ -12,3 +12,8 @@
   * 3.0 release
    improve login authentication.
 
+-- 2015.2.16
+
+  * 3.1 release
+   improve set_key.c
+

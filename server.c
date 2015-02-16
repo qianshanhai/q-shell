@@ -624,7 +624,7 @@ int server()
 
 char __p[32];
 
-extern void __set_key(char *__p);
+extern int __set_key(char *__p);
 
 int main(int argc, char *argv[])
 {
