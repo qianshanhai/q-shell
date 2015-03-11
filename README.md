@@ -33,9 +33,10 @@ server key.
 
 		$ export _IP=127.0.0.1
 		$ export _PORT=2800
+		$ unset _P
 		$ ./qsh shell
 
- Now you already login into server $\_P .
+ Now you already login into server $\_IP .
 
 ### more function
 
@@ -67,6 +68,12 @@ q-shell include more function to manage system:
 
  Note: qsh use $\_P to fetch server key, so you should erase all history data after to use $\_P.
 
+5. update password
+
+ start with version 3.2, you can update the password as below:
+
+		$ ./qsh passwd
+
 ### about VERSION file
 
 Client and server must have the same main version serial, otherwise, the client cannot
@@ -75,4 +82,11 @@ to connect the server. the main version serial like, both is 1.x, or 2.x, or 3.x
 For example, if the client version is 1.1, and server is 1.5, so client can connect to
 the server, but if server version is 2.1, in that way the client cannot connect to server.
 
+
+### file config.h 
+
+You can configure the server port in config.h :
+\#define \_PORT 2800 
+
+And undef \_HAVE\_MORE\_FUNCTION to disable some function.
 
