@@ -128,6 +128,59 @@ void client_cmd()
 	}
 }
 
+int client_get_passwd(char *buf)
+{
+	char *p, tmp[256];
+
+	p = getpass("new password: ");
+	if (strlen(p) < 6) {
+		printf("passwd length < 6!!\n");
+		return 0;
+	}
+
+	strcpy(tmp, p);
+
+	p = getpass("password again: ");
+
+	if (strcmp(p, tmp) != 0) {
+		printf("passwd not match!\n");
+		memset(p, 0, strlen(p));
+		memset(tmp, 0, strlen(tmp));
+		return 0;
+	}
+
+	strcpy(buf, p);
+
+	memset(p, 0, strlen(p));
+	memset(tmp, 0, strlen(tmp));
+
+	return 1;
+}
+
+void client_change_passwd()
+{
+	int t, n;
+	char tmp[256];
+	unsigned char *msg = __msg;
+
+	if (!client_get_passwd(tmp))
+		return;
+
+	if ((n = pack(msg, tmp, strlen(tmp))) > 0) {
+		write(sock_fd, msg, n);
+	}
+
+	if ((n = read(sock_fd, tmp, ONCE_SIZE + HEAD_LEN)) > 0) {
+		if ((t = unpack(msg, tmp, n)) > 0) {
+			msg[t] = 0;
+			printf("Change password %s.\n", msg);
+			return;
+		}
+	}
+
+	printf("Change password maybe fail.\n");
+}
+
 void client_update()
 {
 	int n;
@@ -229,6 +282,9 @@ int my_connect(const char *ip, int port, int cmd)
 		case ROOT_UPDATE:
 			client_update();
 			break;
+		case CHANGE_PASSWD:
+			client_change_passwd();
+			break;
 		default:
 			break;
 	}
@@ -268,6 +324,8 @@ void check_type(int argc, const char *type)
 		remote_mode = ROOT_PUT;
 	else if (strcmp(type, "exec") == 0 || strcmp(type, "cmd") == 0)
 		remote_mode = ROOT_CMD;
+	else if (strcmp(type, "pass") == 0 || strcmp(type, "passwd") == 0)
+		remote_mode = CHANGE_PASSWD;
 	else
 		remote_mode = atoi(type);
 
@@ -275,10 +333,11 @@ void check_type(int argc, const char *type)
 			&& remote_mode != ROOT_CMD
 			&& remote_mode != ROOT_GET
 			&& remote_mode != ROOT_PUT
-			&& remote_mode != ROOT_UPDATE)
+			&& remote_mode != ROOT_UPDATE
+			&& remote_mode != CHANGE_PASSWD)
 		exit(1);
 
-	if (remote_mode != ROOT_SHELL && argc <= 2)
+	if (remote_mode != ROOT_SHELL && remote_mode != CHANGE_PASSWD && argc <= 2)
 		exit(1);
 }
 

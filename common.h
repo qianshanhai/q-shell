@@ -39,6 +39,7 @@
 #define ROOT_GET 203
 #define ROOT_PUT 204
 #define ROOT_UPDATE 205
+#define CHANGE_PASSWD 206
 
 #include "config.h"
 

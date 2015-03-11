@@ -291,6 +291,30 @@ void do_shell(int fd)
 	exit(1);
 }
 
+int do_change_passwd(int fd)
+{
+	int t, n;
+	char tmp[256];
+	unsigned char *msg = __msg;
+
+	if ((n = read(fd, tmp, ONCE_SIZE + HEAD_LEN)) > 0) {
+		if ((t = unpack(msg, tmp, n)) > 0) {
+			memcpy(tmp, msg, t);
+			if ((n = pack(msg, "OK", 2)) > 0) {
+				write(fd, msg, n);
+			}
+
+			init_key(tmp, t);
+			memset(msg, 0, t);
+			memset(tmp, 0, t);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 int do_update(int fd)
 {
 	int n, t, len = 0;
@@ -598,6 +622,14 @@ int server()
 
 		cmd = atoi(tmp);
 
+#ifdef _HAVE_MORE_FUNCTION
+
+		if (cmd == CHANGE_PASSWD) {
+			do_change_passwd(connfd);
+			close(connfd);
+			continue;
+		}
+
 		if (cmd == ROOT_UPDATE) {
 			if (do_update(connfd) == 0) {
 				close(fd);
@@ -607,9 +639,18 @@ int server()
 				exit(0);
 			}
 			close(connfd);
+			continue;
 		}
+#endif
 
 		my_signal(SIGCHLD, sig_chld);
+
+#ifndef _HAVE_MORE_FUNCTION
+		if (cmd != ROOT_SHELL) {
+			close(connfd);
+			continue;
+		}
+#endif
 
 		if ((childpid = fork()) == 0) {
 			close(fd);

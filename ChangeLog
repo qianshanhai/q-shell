@@ -17,3 +17,9 @@
   * 3.1 release
    improve set_key.c
 
+-- 2015.3.11
+
+  * 3.2 release
+  1. add micro _HAVE_MORE_FUNCTION to switch more function
+  2. add change password interface, use 'qsh passwd' update password. 
+
