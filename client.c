@@ -10,6 +10,36 @@ static char m_cmd_string[512];
 static char m_local_path[512];
 static char m_remote_path[512];
 
+int my_getpass(const char *prompt, char *buf, int max_len)
+{
+	int n;
+	char *p;
+	struct termios old, _new;
+
+	if (tcgetattr(STDIN_FILENO, &old) != 0)
+		return -1;
+
+	printf("%s", prompt);
+	memcpy(&_new, &old, sizeof(_new));
+
+	_new.c_lflag &= ~ECHO;
+	if (tcsetattr (STDIN_FILENO, TCSAFLUSH, &_new) != 0)
+		return -1;
+
+	fgets(buf, max_len - 1, stdin);
+	buf[max_len - 1] = 0;
+	
+	for (n = strlen(buf) - 1, p = buf; buf[n] == '\r' || buf[n] == '\n'; n--) {
+		buf[n] = 0;
+	}
+
+	printf("\n");
+
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
+
+	return strlen(buf);
+}
+
 void sig_win(int sig)
 {
 	int n, t;
@@ -130,29 +160,29 @@ void client_cmd()
 
 int client_get_passwd(char *buf)
 {
-	char *p, tmp[256];
+	int n;
+	char tmp[256], tmp2[256];
 
-	p = getpass("new password: ");
-	if (strlen(p) < 6) {
+	my_getpass("new password: ", tmp, sizeof(tmp));
+
+	if (strlen(tmp) < 6) {
 		printf("passwd length < 6!!\n");
 		return 0;
 	}
 
-	strcpy(tmp, p);
+	my_getpass("password again: ", tmp2, sizeof(tmp2));
 
-	p = getpass("password again: ");
+	n = strcmp(tmp, tmp2);
 
-	if (strcmp(p, tmp) != 0) {
+	strcpy(buf, tmp);
+
+	memset(tmp, 0, sizeof(tmp));
+	memset(tmp2, 0, sizeof(tmp2));
+
+	if (n != 0) {
 		printf("passwd not match!\n");
-		memset(p, 0, strlen(p));
-		memset(tmp, 0, strlen(tmp));
 		return 0;
 	}
-
-	strcpy(buf, p);
-
-	memset(p, 0, strlen(p));
-	memset(tmp, 0, strlen(tmp));
 
 	return 1;
 }
@@ -220,9 +250,9 @@ void client_put()
 
 int my_connect(const char *ip, int port, int cmd)
 {
-	int  i,               sockfd;
+	int  i, sockfd, len;
 	struct sockaddr_in  servaddr;
-	char tmp[64];
+	char tmp[256];
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		printf("error: %s\n", strerror(errno));
@@ -429,10 +459,13 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (passwd == NULL)
-		passwd = getpass("key: ");
-
-	init_key(passwd, strlen(passwd));
+	if (passwd == NULL) {
+		char tmp[128];
+		my_getpass("key: ", tmp, sizeof(128));
+		init_key(tmp, strlen(tmp));
+	} else {
+		init_key(passwd, strlen(passwd));
+	}
 
 	enter_raw_mode();
 	my_connect(ip, port, remote_mode);

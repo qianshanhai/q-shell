@@ -1,11 +1,20 @@
 #
-CC = gcc
+HOST_CC = gcc
 
-OS = $(shell uname -s | perl -pne chomp)
+ifeq ($(android), yes)
+ANDK=$(NDK_HOME)
+CC = arm-linux-androideabi-gcc
+API =13
+INC = -I$(ANDK)/platforms/android-$(API)/arch-arm/usr/include
+LIBS = -L$(ANDK)/platforms/android-$(API)/arch-arm/usr/lib -lc -lm
+else
+CC = gcc
+endif
+
 VERSION_DEF = -D_VERSION="\"$(shell cat VERSION | perl -pne chomp)\""
 
-CFLAGS = $(DEBUG) $(VERSION_DEF) -O2 -s
-LIBS = -lm
+CFLAGS = $(INC) $(DEBUG) $(VERSION_DEF) -O2 -s
+LIBS += -lm
 
 objs = blowfish.o my_rand.o
 
@@ -29,7 +38,7 @@ $(server): server.o $(objs) passwd.o
 	@rm -f passwd.o 
 
 passwd.o: setkey.c
-	@$(CC) $(CFLAGS) -o setkey $< $(LIBS)
+	@$(HOST_CC) -o setkey $< 
 	@ ./setkey && $(CC) $(CFLAGS) -c passwd.c -o $@ 
 	@ cat /bin/ls > passwd.c && rm -f passwd.c
 

